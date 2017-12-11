@@ -70,6 +70,8 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
 {
   MyCity* bfsCurrent = NULL;
   MyCity* adjacent = NULL;
+  MyCity* destination;
+  MyRoad currentRoad;
 
   int numWaiting = 0; // number of people waiting to be placed somewhere
 
@@ -126,17 +128,64 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
   /**
    * Start: Initiate evacuation
    */
+    int give = 0;
+    int numTaken = 0;
+    int totalTaken = 0;
+
   while(numPeopleLeft)
   {
     /**
      * Start: Send the maximum amount of people out of the evac zone to a safety zone for the current hour for each
      *        evac city.
      */
+    // for every evac city
     for(int i = 0; i < numEvacs; ++i)
     {
-      // send people out for the current evac city
-      DFS(evacCities[i], evacCities[i]->ID, numWaiting, evacRoutes, routeCount);
-      // reset bool array for next city
+      // look at every adjacent city and send people
+      for(int j = 0; j < evacCities[i]->roadCount; ++j)
+      {
+        // get destination information
+        currentRoad = evacCities[i]->roads[j];
+        destination = cities[currentRoad.destinationCityID];
+
+        // get population of current evac city
+        give = evacCities[i]->population;
+
+        // check if the road is limiting flow
+        if(currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID] < give)
+          give = currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID];
+
+        // check if the destination is limiting flow
+        if(destination->population - destination->evacuees < give)
+          give = destination->population - destination->evacuees;
+
+        // if nothing can be given to the adjacent city, move on
+        if(give == 0)
+          continue;
+
+        // get the ACTUAL number of people lead to safety
+        numTaken = DFS(destination, evacCities[i]->ID, give, evacRoutes, routeCount);
+
+        if(numTaken > give)
+        {
+          cout << "ERROR: Too many people sent down a road" << endl;
+          exit(0);
+        }
+
+        // if people were lead to safety, record the amount for the evac route an subtract from population and numLeft
+        if(numTaken)
+        {
+          evacRoutes[routeCount].time = clock;              //
+          evacRoutes[routeCount].numPeople = numTaken;      //  recording route
+          evacRoutes[routeCount].roadID = currentRoad.ID;   //
+          ++routeCount;                                     //
+
+          // update evac city and numLeft
+          evacCities[i]->population -= numTaken;
+          numPeopleLeft -= numTaken;
+        }
+      }
+      // reset visited cities
       memset(wasVisited, false, sizeof(bool) * numCities);
     }
     /**
@@ -165,9 +214,8 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
 // if destination is source
 // check road capacities!
 // mark cities as false on the way back up so the same city can use the same path on the way down
-int Evac::DFS(MyCity* origin, int evacID, int waiting, EvacRoute* evacRoutes, int& routeCount)
+int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, int& routeCount)
 {
-  int originID = origin->ID;
   int numGiven = waiting; // if(numWaiting) -> give to city if not an evac city, else return residual (0?)
   int numTaken = 0;
   int totalTaken = 0;
@@ -187,87 +235,40 @@ int Evac::DFS(MyCity* origin, int evacID, int waiting, EvacRoute* evacRoutes, in
       // mark as true to prevent from coming back
       wasVisited[originID] = true;
 
-      if(originID == evacID)
+      // not the original evacuating city
+      if(destination->level >= origin->level)
       {
-        // check if the people left are limiting flow
-        numGiven = origin->population;
+        // keep track of how may people to give adjacent city
+        int give = numGiven;
 
         // check if the road is limiting flow
-        if(currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID] < numGiven)
-          numGiven= currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID];
+        if(currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID] < give)
+          give = currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID];
 
         // check if the destination is limiting flow (could I get rid of this?)
-        if(destination->population - destination->evacuees < numGiven)
-          numGiven = destination->population - destination->evacuees;
+        if(destination->population - destination->evacuees < give)
+          give = destination->population - destination->evacuees;
 
-        if(!numGiven)
+        if(!give)
           continue;
 
         // get number of people taken
-        numTaken = DFS(destination, evacID, numGiven, evacRoutes, routeCount);
+        numTaken = DFS(destination, give, destination->ID, evacRoutes, routeCount);
 
         // record route if people were taken
         if(numTaken)
         {
-          if(currentRoad.ID == 28 && roadCurrUsing[currentRoad.ID] >= 339)
-            cout << "";
-
-
           evacRoutes[routeCount].roadID = currentRoad.ID;
           roadCurrUsing[currentRoad.ID] += numTaken;
           evacRoutes[routeCount].numPeople = numTaken;
           evacRoutes[routeCount].time = clock;
           ++routeCount;
 
-          // subtract numTaken people from population and the number of TOTAL people left to evacuate
-          cities[evacID]->population -= numTaken;
-          numPeopleLeft -= numTaken;
-
           // keep cumulative total of EVERYONE that was taken
           totalTaken += numTaken;
-        }
-      }
-      // not the original evacuating city
-      else
-      {
-        if(destination->level >= origin->level)
-        {
-          // keep track of how may people to give adjacent city
-          int give = numGiven;
 
-          // check if the road is limiting flow
-          if(currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID] < give)
-            give = currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID];
-
-          // check if the destination is limiting flow (could I get rid of this?)
-          if(destination->population - destination->evacuees < give)
-            give = destination->population - destination->evacuees;
-
-          if(!give)
-            continue;
-
-          // get number of people taken
-          numTaken = DFS(destination, give, evacID, evacRoutes, routeCount);
-
-          // record route if people were taken
-          if(numTaken)
-          {
-            if(currentRoad.ID == 28 && roadCurrUsing[currentRoad.ID] >= 339)
-              cout << "";
-
-
-            evacRoutes[routeCount].roadID = currentRoad.ID;
-            roadCurrUsing[currentRoad.ID] += numTaken;
-            evacRoutes[routeCount].numPeople = numTaken;
-            evacRoutes[routeCount].time = clock;
-            ++routeCount;
-
-            // keep cumulative total of EVERYONE that was taken
-            totalTaken += numTaken;
-
-            // keep track of residual in case this needs to be kept
-            numGiven -= numTaken;
-          }
+          // keep track of residual in case this needs to be kept
+          numGiven -= numTaken;
         }
       }
     }

@@ -141,6 +141,8 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
     // for every evac city
     for(int i = 0; i < numEvacs; ++i)
     {
+      wasVisited[evacCities[i]->ID] = true;
+
       // look at every adjacent city and send people
       for(int j = 0; j < evacCities[i]->roadCount; ++j)
       {
@@ -164,7 +166,7 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
           continue;
 
         // get the ACTUAL number of people lead to safety
-        numTaken = DFS(destination, evacCities[i]->ID, give, evacRoutes, routeCount);
+        numTaken = DFS(destination, destination->ID, give, evacRoutes, routeCount);
 
         if(numTaken > give)
         {
@@ -255,7 +257,7 @@ int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, 
           continue;
 
         // get number of people taken
-        numTaken = DFS(destination, give, destination->ID, evacRoutes, routeCount);
+        numTaken = DFS(destination, destination->ID, give, evacRoutes, routeCount);
 
         // record route if people were taken
         if(numTaken)

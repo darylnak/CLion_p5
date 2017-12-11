@@ -160,7 +160,7 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
           give = destination->population - destination->evacuees;
 
         // if nothing can be given to the adjacent city, move on
-        if(give == 0)
+        if(!give)
           continue;
 
         // get the ACTUAL number of people lead to safety
@@ -178,6 +178,7 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
           evacRoutes[routeCount].time = clock;              //
           evacRoutes[routeCount].numPeople = numTaken;      //  recording route
           evacRoutes[routeCount].roadID = currentRoad.ID;   //
+          roadCurrUsing[currentRoad.ID] += numTaken;        //
           ++routeCount;                                     //
 
           // update evac city and numLeft
@@ -216,14 +217,14 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
 // mark cities as false on the way back up so the same city can use the same path on the way down
 int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, int& routeCount)
 {
-  int numGiven = waiting; // if(numWaiting) -> give to city if not an evac city, else return residual (0?)
+  int numGiven = waiting;
   int numTaken = 0;
   int totalTaken = 0;
 
   MyCity* destination;
   MyRoad currentRoad;
 
-  // for every city adjacent
+  // for every adjacent city
   for(int i = 0; i < origin->roadCount; ++i)
   {
     destination = cities[origin->roads[i].destinationCityID];
@@ -235,7 +236,7 @@ int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, 
       // mark as true to prevent from coming back
       wasVisited[originID] = true;
 
-      // not the original evacuating city
+      // if the destination level is >= origin, push some people there
       if(destination->level >= origin->level)
       {
         // keep track of how may people to give adjacent city
@@ -245,10 +246,11 @@ int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, 
         if(currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID] < give)
           give = currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID];
 
-        // check if the destination is limiting flow (could I get rid of this?)
+        // check if the destination is limiting flow
         if(destination->population - destination->evacuees < give)
           give = destination->population - destination->evacuees;
 
+        // nothing to give. Move on.
         if(!give)
           continue;
 
@@ -274,8 +276,15 @@ int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, 
     }
   }
 
-  if(!isEvacCity[originID] && numGiven && origin->population - origin->evacuees > 0)
+  // if the current city is not an evac city AND there are people still waiting here
+  if(!isEvacCity[originID] && numGiven)
   {
+    int space = origin->population - origin->evacuees;
+
+    // check if the current city has limited space
+    if(space < numGiven)
+      numGiven = space;
+
     cities[originID]->evacuees += numGiven;
     totalTaken += numGiven;
   }

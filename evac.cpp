@@ -27,7 +27,7 @@ int Evac::compareCity(const void * a, const void * b)
 }
 
 Evac::Evac(City *citie, int numCitie, int numRoads) :
-           clock(1), bfs(numCitie), numCities(numCitie), totalRoads(numRoads * 2), numPeopleLeft(0)
+           clock(1), bfs(numCitie), numCities(numCitie), totalRoads(numRoads * 2), numPeopleLeft(0), track(0)
 {
   numCities = numCitie;
   cities = new MyCity*[numCitie]; // array of cities. index is ID of city
@@ -153,6 +153,7 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
         // get population of current evac city
         give = evacCities[i]->population;
 
+        // evac city is empty. Move on
         if(!give)
           break;
 
@@ -167,6 +168,9 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
         // get the ACTUAL number of people lead to safety
         numTaken = DFS(destination, destination->ID, give, evacRoutes, routeCount);
 
+        if(numTaken > give)
+          cout << 1;
+
         // if people were lead to safety, record the amount for the evac route an subtract from population and numLeft
         if(numTaken)
         {
@@ -175,6 +179,9 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
           evacRoutes[routeCount].roadID = currentRoad.ID;   //
           roadCurrUsing[currentRoad.ID] += numTaken;        //
           ++routeCount;                                     //
+
+          if(currentRoad.ID == 2 && roadCurrUsing[2] > 407)
+            cout << 1;
 
           // update evac city and numLeft
           evacCities[i]->population -= numTaken;
@@ -202,7 +209,7 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
 } // evacuate
 
 // FIX ME!!!! NEED TO STOP!
-// BUG: numGiven/give is going negative
+// BUG: numGiven/give is going negative -> road 2 is overflowing (407 -> 584) -> -177
 // communicate how much was ACTUALLY taken from numWaiting (numTaken)
 // if destination is source
 // check road capacities!
@@ -216,11 +223,13 @@ int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, 
   MyCity* destination;
   MyRoad currentRoad;
 
-
-
   // for every adjacent city
   for(int i = 0; i < origin->roadCount; ++i)
   {
+    ++track;
+
+    if(track == 18270)
+      cout << 1;
     destination = cities[origin->roads[i].destinationCityID];
     currentRoad = origin->roads[i];
 
@@ -236,6 +245,9 @@ int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, 
         // keep track of how may people to give adjacent city
         int give = numGiven;
 
+        if(!give)
+          continue;
+
         // check if the road is limiting flow
         if(currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID] < give)
           give = currentRoad.peoplePerHour - roadCurrUsing[currentRoad.ID];
@@ -243,6 +255,9 @@ int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, 
         // nothing to give. Move on.
         if(!give)
           continue;
+
+      if(waiting == -177)
+        cout << 1;
 
         // get number of people taken
         numTaken = DFS(destination, destination->ID, give, evacRoutes, routeCount);
@@ -253,11 +268,16 @@ int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, 
         // record route if people were taken
         if(numTaken)
         {
+
+
           evacRoutes[routeCount].roadID = currentRoad.ID;
           roadCurrUsing[currentRoad.ID] += numTaken;
           evacRoutes[routeCount].numPeople = numTaken;
           evacRoutes[routeCount].time = clock;
           ++routeCount;
+
+          if(currentRoad.ID == 2 && roadCurrUsing[2] > 407)
+            cout << 1;
 
           // keep cumulative total of EVERYONE that was taken
           totalTaken += numTaken;
@@ -268,9 +288,6 @@ int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, 
      // }
     }
   }
-
-  //if(numPeopleLeft == 105015)
-    //cout << 1 << endl;
 
   // if the current city is not an evac city AND there are people still waiting here
   if(!isEvacCity[originID] && numGiven)
@@ -285,8 +302,8 @@ int Evac::DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, 
     totalTaken += numGiven;
   }
 
-  if(wasVisited[originID])
-    wasVisited[originID] = false;
+  // make path available for another adjacent city
+  wasVisited[originID] = false;
 
   // return the TOTAL amount of people taken
   return totalTaken;

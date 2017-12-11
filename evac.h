@@ -18,6 +18,7 @@ public:
   bool* wasVisited;
   bool* isEvacCity;
   int* roadCurrUsing;
+  int track;
 
   Queue<MyCity> bfs;
   int numCities;

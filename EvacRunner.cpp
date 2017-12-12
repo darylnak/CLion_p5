@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
   City *cities = new City[numCities];
   int *evacIDs = new int[numEvacs];
   readCities(inf, cities, evacIDs, numCities, numEvacs);
-  EvacRoute *evacRoutes = new EvacRoute[numCities * 2000];
+  EvacRoute *evacRoutes = new EvacRoute[numCities * 100000];
   CPUTimer ct;
   ct.reset();
   Evac *evac = new Evac(cities, numCities, numRoads);

@@ -58,7 +58,7 @@ public:
 
   Evac(City *cities, int numCities, int numRoads);
   void evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes, int &routeCount); // student sets evacRoutes and routeCount
-  int DFS(MyCity* origin, int originID, int waiting, EvacRoute* evacRoutes, int& routeCount);
+  int DFS(MyCity* origin, int originID, int given, EvacRoute* evacRoutes, int& routeCount);
 
   // for qsort()
   static int compareRoads (const void * a, const void * b);

@@ -2,7 +2,6 @@
 #ifndef evacH
 #define evacH
 
-#include "vec.h"
 #include "StackAr.h"
 #include "QueueAr.h"
 #include "EvacRunner.h"
@@ -28,13 +27,11 @@ public:
   int population;
   int evacuees;
   int level;
-  bool isViable;
 
   MyRoad* roads;
   int roadCount;
-  int* outRoads;
 
-  MyCity() : level(-1), evacuees(0), isViable(true) {}
+  MyCity() : level(-1), evacuees(0){}
 
 };
 
@@ -45,11 +42,10 @@ private:
 
 public:
   MyCity** cities;
-  MyRoad* allRoads;
   bool* wasVisited;
   bool* isEvacCity;
   int* roadCurrUsing;
-  int track;
+  int minFlow;
 
   Queue<MyCity> bfs;
   int numCities;

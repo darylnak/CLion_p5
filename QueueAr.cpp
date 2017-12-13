@@ -4,9 +4,8 @@
  * Construct the queue.
  */
 template <class Object>
-Queue<Object>::Queue(int capacity) : size(capacity)
+Queue<Object>::Queue(int capacity) : size(capacity), currentSize(0), front(0), back(-1)
 {
-  makeEmpty( );
   theArray = new Object* [capacity];
 }
 
@@ -28,17 +27,6 @@ template <class Object>
 bool Queue<Object>::isFull() const
 {
   return currentSize == size;
-}
-
-/**
- * Make the queue logically empty.
- */
-template <class Object>
-void Queue<Object>::makeEmpty( )
-{
-  currentSize = 0;
-  front = 0;
-  back = -1;
 }
 
 /**

@@ -27,10 +27,10 @@ int Evac::compareCity(const void * a, const void * b)
 }
 
 Evac::Evac(City *citie, int numCitie, int numRoads) :
-           clock(1), bfs(numCitie), numCities(numCitie), totalRoads(numRoads * 2), numPeopleLeft(0), minFlow(300)
+           clock(1), bfs(numCitie), numCities(numCitie), totalRoads(numRoads * 2), numPeopleLeft(0), minFlow(10)
 {
-  cities = new MyCity*[numCitie];      // array of cities. index is ID of city
-  wasVisited = new bool[numCitie];     // visited bool array. index is city ID
+  cities = new MyCity*[numCitie]; // array of cities. index is ID of city
+  wasVisited = new bool[numCitie]; // visited bool array. index is city ID
   isEvacCity = new bool[numCitie];
   roadCurrUsing = new int[totalRoads]; // keep track of current road PPH. index is road ID
 
@@ -72,7 +72,6 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
   MyRoad roadUsed;
 
   routeCount = 0;
-  int numWaiting = 0; // number of people waiting to be placed somewhere
 
   // sort evac cities by road count
   MyCity** evacCities = new MyCity*[numEvacs];
@@ -90,6 +89,10 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
     isEvacCity[evacCities[i]->ID] = true; // mark as an evacuee city
     bfs.enqueue(evacCities[i]);
   }
+
+  //
+  //
+  //
 
   /**
    * Start: BFS - level everything
@@ -127,7 +130,7 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
    * Start: Initiate evacuation
    */
     int give = 0;
-    int numTaken = 1;
+    int numTaken = 0;
     int totalTaken = 0;
 
   while(numPeopleLeft)
@@ -160,7 +163,7 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
           give = roadUsed.peoplePerHour - roadCurrUsing[roadUsed.ID];
 
         // if the road is full, check next road
-        if (!give)
+        if (!give || give < minFlow)
           continue;
 
         // get the ACTUAL number of people lead to safety
@@ -168,14 +171,13 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
 
         // if people were lead to safety,
         // record the amount for the evac route and subtract from population and numPeopleLeft
-        if(numTaken && numTaken >= minFlow)
+        if(numTaken >= minFlow)
         {
-          --j;
+          --j; // restart search again since people were taken
           evacRoutes[routeCount].time = clock;           //
           evacRoutes[routeCount].numPeople = numTaken;   //
-          evacRoutes[routeCount].roadID = roadUsed.ID;   //  recording route
+          evacRoutes[routeCount++].roadID = roadUsed.ID;   //  recording route
           roadCurrUsing[roadUsed.ID] += numTaken;        //
-          ++routeCount;                                  //
 
           // update evac city and give
           evacCities[i]->population -= numTaken;
@@ -188,7 +190,7 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
           totalTaken += numTaken;
         }
       }
-      //memset(wasVisited, false, sizeof(bool) * numCities);
+
       wasVisited[evacCities[i]->ID] = false;
     } // evacuate people for this hour
     /**
@@ -202,11 +204,10 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute* evacRoutes, int& rout
     if(!totalTaken)
       --minFlow;
 
-    cout << numPeopleLeft << " " << minFlow << endl;
-
     totalTaken = 0;
 
     // begin next hour
+    qsort(evacCities, numEvacs, sizeof(MyCity*), &Evac::compareCity);
     ++clock;
   }
   /**
@@ -245,28 +246,26 @@ int Evac::DFS(MyCity* origin, int originID, int given, EvacRoute* evacRoutes, in
       break;
 
     // if the adjacent level is >= origin, send some people there
-    if (adjacent->level >= origin->level)
-    {
+    if (adjacent->level >= origin->level) {
       // check if the road is limiting flow
       if (roadUsed.peoplePerHour - roadCurrUsing[roadUsed.ID] < give)
         give = roadUsed.peoplePerHour - roadCurrUsing[roadUsed.ID];
 
       // if the road is full, check next road
-      if (!give)
+      if (!give || give < minFlow)
         continue;
 
       // get number of people taken
       numTaken = DFS(adjacent, adjacent->ID, give, evacRoutes, routeCount);
 
       // record route if people were taken
-      if(numTaken && numTaken >= minFlow)
+      if(numTaken >= minFlow)
       {
-        --i;
+        --i; // restart search again since people were taken
         evacRoutes[routeCount].roadID = roadUsed.ID;
         roadCurrUsing[roadUsed.ID] += numTaken;
         evacRoutes[routeCount].numPeople = numTaken;
-        evacRoutes[routeCount].time = clock;
-        ++routeCount;
+        evacRoutes[routeCount++].time = clock;
 
         // keep cumulative total of EVERYONE that was taken
         totalTaken += numTaken;

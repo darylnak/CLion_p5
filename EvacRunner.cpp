@@ -60,30 +60,27 @@ void readCities2(ifstream &inf, City cities[], char evacIDs[], int numCities,
     }
   } // for each city
   inf.close();
-} // readCities2()
+} // readCities()
 
 
 int checker(City *cities, char *evacIDs, int numCities, int numEvacs, EvacRoute *evacRoutes,
   int routeCount, Road2 *roads)
 {
-  int hours = 0;
+  int hours = 0, total = 0;
   multiset <EvacRoute> routes;
   vector <int> roadIDs;
   set <int> cityIDs;
-  for(int i = 0; i < routeCount; i++)
+  for(int i = 0; i < routeCount; i++) {
     routes.insert(evacRoutes[i]);
+  }
 
   for(multiset<EvacRoute>::iterator itr = routes.begin(); itr != routes.end(); itr++)
-  {  // for each route in EvacRoutes[]
+  {
     if(itr->time < 1)
     {
       cout << "Initial time is " << itr->time << " which is less than 1\n";
       return hours;
     }
-
-    if(hours == 74)
-      cout << "";
-
     if(itr->time != hours)
     {
       for(set<int>::iterator citr = cityIDs.begin(); citr != cityIDs.end(); citr++)
@@ -94,14 +91,14 @@ int checker(City *cities, char *evacIDs, int numCities, int numEvacs, EvacRoute 
             << cities[*citr].evacuees << " but only pop "
             << cities[*citr].population << endl;
           return hours;
-        } // if number evacuees in a city exceeds that of its population
+        }
 
         if(cities[*citr].evacuees < 0 && evacIDs[*citr] == 0)
         {
           cout << "At hour " << hours << " city ID " << *citr << " has "
             << cities[*citr].evacuees << endl;
           return hours;
-        }  // if less than zero evacuees.
+        }
       } // for each city used at this time
 
       for(vector<int>::iterator vitr = roadIDs.begin(); vitr != roadIDs.end(); vitr++)
@@ -114,7 +111,6 @@ int checker(City *cities, char *evacIDs, int numCities, int numEvacs, EvacRoute 
     if(itr->numPeople > 0)
     {
       roads[itr->roadID].peopleThisHour += itr->numPeople;
-
       if(roads[itr->roadID].peopleThisHour > roads[itr->roadID].peoplePerHour
         || roads[itr->roadID].peopleThisHour < 0)
       {
@@ -123,14 +119,18 @@ int checker(City *cities, char *evacIDs, int numCities, int numEvacs, EvacRoute 
           << roads[itr->roadID].destinationCityID << " has "
           << roads[itr->roadID].peopleThisHour << " using it\n";
         return hours;
-      } // if people this hour exceeds capacity, or is negative
-
+      }
       roadIDs.push_back(itr->roadID);
+      if(roads[itr->roadID].sourceCityID == 2)
+        total += itr->numPeople;
+      if(roads[itr->roadID].destinationCityID == 2)
+        total -= itr->numPeople;
+
       cities[roads[itr->roadID].sourceCityID].evacuees -= itr->numPeople;
       cities[roads[itr->roadID].destinationCityID].evacuees += itr->numPeople;
       cityIDs.insert(roads[itr->roadID].sourceCityID);
       cityIDs.insert(roads[itr->roadID].destinationCityID);
-    } // if number of people moved > 0.  Stops cheating
+    }
   }  // for all EvacRoutes
 
   for(int i = 0; i < numCities; i++)
@@ -139,7 +139,7 @@ int checker(City *cities, char *evacIDs, int numCities, int numEvacs, EvacRoute 
       cout << "Evacuated city ID " << i << " has " << -cities[i].evacuees << " evacuees but a pop "
         << cities[i].population << endl;
       return hours;
-    } // if number of evacuees doesn't match the population of an evacuated city
+    }
 
   return hours;
 } // checker()

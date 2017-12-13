@@ -2,7 +2,6 @@
 #ifndef evacH
 #define evacH
 
-#include "StackAr.h"
 #include "QueueAr.h"
 #include "EvacRunner.h"
 
@@ -14,9 +13,8 @@ public:
   int destinationCityID;
   int sourceCityID;
   int peoplePerHour;
-  int peopleThisHour;
 
-  MyRoad() : ID(-1), destinationCityID(-1), sourceCityID(-1), peoplePerHour(-1), peopleThisHour(0) {}
+  MyRoad() : ID(-1), destinationCityID(-1), sourceCityID(-1), peoplePerHour(-1) {}
 };
 
 class MyCity
@@ -53,7 +51,7 @@ public:
   int numPeopleLeft;
 
   Evac(City *cities, int numCities, int numRoads);
-  void evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes, int &routeCount); // student sets evacRoutes and routeCount
+  void evacuate(int *evacIDs, int numEvacs, EvacRoute *er, int &routeCount); // student sets evacRoutes and routeCount
   int DFS(MyCity* origin, int originID, int given, EvacRoute* evacRoutes, int& routeCount);
 
   // for qsort()

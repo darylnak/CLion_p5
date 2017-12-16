@@ -11,10 +11,10 @@ class MyRoad
 public:
   int ID;
   int destinationCityID;
-  int sourceCityID;
+  //int sourceCityID;
   int peoplePerHour;
 
-  MyRoad() : ID(-1), destinationCityID(-1), sourceCityID(-1), peoplePerHour(-1) {}
+  MyRoad() : ID(0), destinationCityID(0), peoplePerHour(0) {}
 };
 
 class MyCity
@@ -29,7 +29,7 @@ public:
   MyRoad* roads;
   int roadCount;
 
-  MyCity() : level(-1), evacuees(0){}
+  MyCity() : ID(0), population(0), evacuees(0), level(0) {}
 
 };
 
@@ -43,11 +43,11 @@ public:
   bool* wasVisited;
   bool* isEvacCity;
   int* roadCurrUsing;
-  int minFlow;
 
   Queue<MyCity> bfs;
   int numCities;
   int totalRoads;
+  int minFlow;
   int numPeopleLeft;
 
   Evac(City *cities, int numCities, int numRoads);
